@@ -135,12 +135,11 @@ def ejecutar_programa(input, index=0):
     except:
         raise ValueError("El programa introducido como entrada no es válido")
 
-def restaurar_programa(input):
+def restaurar_programa(input, nombre=12, verbo=2):
     try:
-        input_rest = []
-        input_rest[::] = input[::]
-        input_rest[1] = 12
-        input_rest[2] = 2
+        input_rest = input.copy()
+        input_rest[1] = nombre
+        input_rest[2] = verbo
         return input_rest
     except:
         raise ValueError("El programa introducido como entrada no es válido")
@@ -150,10 +149,26 @@ path = "d:\\advent-of-code-2019\\day2\\"
 with open(path+"input.txt") as input:
     intcode = [int(i) for i in input.read().split(',')]
 
-# %%
-intcode_restore = restaurar_programa(intcode)
+prog_lanz = ejecutar_programa(restaurar_programa(intcode))
 
 # %%
-prog_lanz = ejecutar_programa(intcode_restore)
+with open(path+"input2.txt") as input:
+    intcode2 = [int(i) for i in input.read().split(',')]
+
+fin = False
+for nombre in range(0,100):
+    for verbo in range (0,100):
+        intcode_ = intcode2.copy()
+        salida = ejecutar_programa(restaurar_programa(intcode_, nombre, verbo))[0]
+        print(f"nombre={ nombre }, verbo={ verbo } -> {salida}")
+        if salida == 19690720:
+            print(f"El nombre buscado es: {nombre}")
+            print(f"El verbo buscado es: {verbo}")
+            print(f"Respuesta: {100 * nombre + verbo}")
+            fin = True
+            break
+    if fin:
+        break
+
 
 # %%
