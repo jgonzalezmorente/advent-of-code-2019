@@ -75,9 +75,8 @@ class Cable(object):
 
     def interseccion_mas_cercana(self, cable):
         interseccion = list(set(self.puntos_).intersection(set(cable.puntos_)))
-        print(interseccion)
         if len(interseccion) <= 1:
-            return None, None
+            return None
         else:
             interseccion.sort(key=lambda x: abs(x[0])+abs(x[1]))
             return interseccion[1], (abs(interseccion[1][0]) + abs(interseccion[1][1]))
@@ -90,4 +89,17 @@ cable2 = Cable("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")
 cable2.transformar_puntos()
 
 cable1.interseccion_mas_cercana(cable2)
+# %%
+path = "C:\\Users\\J.A.G.M\\advent-of-code-2019\\day3\\"
+with open(path+"input.txt") as input:
+    rutas_cables = input.readlines()
+# %%
+cable1 = Cable(rutas_cables[0])
+cable1.transformar_puntos()
+
+cable2 = Cable(rutas_cables[1])
+cable2.transformar_puntos()
+
+cable1.interseccion_mas_cercana(cable2)
+
 # %%
