@@ -73,13 +73,31 @@ class Cable(object):
         for ruta in self.recorrido:
             self.puntos_.extend(obtener_tramo_siguiente(self.puntos_[-1], ruta))
 
+    def interseccion(self, cable):
+        return list(set(self.puntos_).intersection(set(cable.puntos_)))
+        
     def interseccion_mas_cercana(self, cable):
-        interseccion = list(set(self.puntos_).intersection(set(cable.puntos_)))
+        interseccion = self.interseccion(cable)
         if len(interseccion) <= 1:
             return None
         else:
             interseccion.sort(key=lambda x: abs(x[0])+abs(x[1]))
             return interseccion[1], (abs(interseccion[1][0]) + abs(interseccion[1][1]))
+
+    def pasos(self, punto):
+        if punto in self.puntos_:
+            return self.puntos_.index(punto)
+        else:
+            return None
+    
+    def mejor_interseccion(self, cable):
+        interseccion = self.interseccion(cable)
+        if len(interseccion) > 1:
+            pasos = [(self.pasos(p) + cable.pasos(p), p) for p in interseccion if p != (0,0)]
+            pasos.sort(key=lambda x : x[0])
+            return pasos[0]
+        else:
+            return None
 
 # %%
 cable1 = Cable("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51")
@@ -101,5 +119,37 @@ cable2 = Cable(rutas_cables[1])
 cable2.transformar_puntos()
 
 cable1.interseccion_mas_cercana(cable2)
+
+# %%
+cable1 = Cable("R8,U5,L5,D3")
+cable2 = Cable("U7,R6,D4,L4")
+cable1.transformar_puntos()
+cable2.transformar_puntos()
+cable1.mejor_interseccion(cable2)
+
+# %%
+cable1 = Cable("R75,D30,R83,U83,L12,D49,R71,U7,L72")
+cable2 = Cable("U62,R66,U55,R34,D71,R55,D58,R83")
+cable1.transformar_puntos()
+cable2.transformar_puntos()
+cable1.mejor_interseccion(cable2)
+
+# %%
+cable1 = Cable("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51")
+cable2 = Cable("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")
+cable1.transformar_puntos()
+cable2.transformar_puntos()
+cable1.mejor_interseccion(cable2)
+
+# %%
+with open(path+"input2.txt") as input:
+    rutas_cables2 = input.readlines()
+
+# %%
+cable1 = Cable(rutas_cables2[0])
+cable2 = Cable(rutas_cables2[1])
+cable1.transformar_puntos()
+cable2.transformar_puntos()
+cable1.mejor_interseccion(cable2)
 
 # %%
