@@ -65,6 +65,47 @@ Finally, the program will output a diagnostic code and immediately halt. This fi
 by a halt means the program finished. If all outputs were zero except the diagnostic code, the diagnostic program ran successfully.
 
 After providing 1 to the only input instruction and passing all the tests, what diagnostic code does the program produce?
+
+--- Part Two ---
+The air conditioner comes online! Its cold air feels good for a while, but then the TEST alarms start to go off. Since the air conditioner can't 
+vent its heat anywhere but back into the spacecraft, it's actually making the air inside the ship warmer.
+
+Instead, you'll need to use the TEST to extend the thermal radiators. Fortunately, the diagnostic program (your puzzle input) is already equipped for this. 
+Unfortunately, your Intcode computer is not.
+
+Your computer is only missing a few opcodes:
+
+Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+Like all instructions, these instructions need to support parameter modes as described above.
+
+Normally, after an instruction is finished, the instruction pointer increases by the number of values in that instruction. However, 
+if the instruction modifies the instruction pointer, that value is used and the instruction pointer is not automatically increased.
+
+For example, here are several programs that take one input, compare it to the value 8, and then produce one output:
+
+3,9,8,9,10,9,4,9,99,-1,8 - Using position mode, consider whether the input is equal to 8; output 1 (if it is) or 0 (if it is not).
+3,9,7,9,10,9,4,9,99,-1,8 - Using position mode, consider whether the input is less than 8; output 1 (if it is) or 0 (if it is not).
+3,3,1108,-1,8,3,4,3,99 - Using immediate mode, consider whether the input is equal to 8; output 1 (if it is) or 0 (if it is not).
+3,3,1107,-1,8,3,4,3,99 - Using immediate mode, consider whether the input is less than 8; output 1 (if it is) or 0 (if it is not).
+Here are some jump tests that take an input, then output 0 if the input was zero or 1 if the input was non-zero:
+
+3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9 (using position mode)
+3,3,1105,-1,9,1101,0,0,12,4,12,99,1 (using immediate mode)
+Here's a larger example:
+
+3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99
+The above example program uses an input instruction to ask for a single number. The program will then output 999 if the input value is below 8, 
+output 1000 if the input value is equal to 8, or output 1001 if the input value is greater than 8.
+
+This time, when the TEST diagnostic program runs its input instruction to get the ID of the system to test, provide it 5, the ID for the ship's thermal radiator controller. 
+This diagnostic test suite only outputs one number, the diagnostic code.
+
+What is the diagnostic code for system ID 5?
 """
 #%%
 class IntCode(object):
@@ -81,45 +122,52 @@ class IntCode(object):
         modo2 = int(instruccion[-4])
         modo3 = int(instruccion[-5])
 
-        if (not opcode in [1, 2, 3, 4, 99]) or (not {modo1, modo2, modo3}.issubset({0, 1})) or modo3 != 0:
+        if ( (not opcode in [1, 2, 3, 4, 5, 6, 7, 8, 99]) 
+          or (not {modo1, modo2, modo3}.issubset({0, 1}))
+          or (opcode == 3 and not input) ):
             raise ValueError(texto_error)
+
         try:
             if opcode == 99:
                 return
-            elif opcode == 1:
-                operacion = lambda x, y: x+y
-            elif opcode == 2:
-                operacion = lambda x, y: x*y
+
+            elif opcode == 1 or opcode == 2:
+                operacion = (lambda x, y: x+y) if opcode == 1 else (lambda x, y: x*y)
+                self.programa[self.programa[i+3]] = operacion(self.obtener_valor(modo1, i+1), self.obtener_valor(modo2, i+2))
+                return self.ejecutar_programa(i=i+4)
+    
             elif opcode == 3:
-                if not input or {modo1, modo2, modo3} != {0}:
-                    raise ValueError(texto_error)
-                else:
-                    self.programa[self.programa[i+1]] = input
-                    return self.ejecutar_programa(i=i+2)
+                self.programa[self.programa[i+1]] = input
+                return self.ejecutar_programa(i=i+2)
+
             elif opcode == 4:
-                if {modo2, modo3} != {0}:
-                    raise ValueError(texto_error)
-                elif modo1 == 0:
-                    self.codigo_diagnostico = self.programa[self.programa[i+1]]
-                elif modo1 == 1:
-                    self.codigo_diagnostico = self.programa[i+1]
+                self.codigo_diagnostico = self.obtener_valor(modo1, i+1)
                 self.salidas.append(self.codigo_diagnostico)
                 return self.ejecutar_programa(i=i+2, input=self.codigo_diagnostico)
-            
-            if modo1 == 0:
-                valor1 = self.programa[self.programa[i+1]]
-            else:
-                valor1 = self.programa[i+1]
 
-            if modo2 == 0:
-                valor2 = self.programa[self.programa[i+2]]
-            else:
-                valor2 = self.programa[i+2]
+            elif opcode == 5 or opcode == 6:
+                if (opcode == 5 and self.obtener_valor(modo1, i+1) != 0) or (opcode == 6 and self.obtener_valor(modo1, i+1) == 0):
+                    puntero = self.obtener_valor(modo2, i+2)
+                else:
+                    puntero = i+3
+                return self.ejecutar_programa(i=puntero)
 
-            self.programa[self.programa[i+3]] = operacion(valor1, valor2)
-            return self.ejecutar_programa(i=i+4)
+            elif opcode == 7 or opcode == 8:
+                if ((opcode == 7 and (self.obtener_valor(modo1, i+1) < self.obtener_valor(modo2, i+2))) 
+                  or (opcode == 8 and (self.obtener_valor(modo1, i+1) == self.obtener_valor(modo2, i+2)))):
+                    self.programa[self.programa[i+3]] = 1
+                else:
+                    self.programa[self.programa[i+3]] = 0
+                return self.ejecutar_programa(i=i+4)
+
         except:
             raise ValueError(texto_error)
+
+    def obtener_valor(self, modo, puntero):
+        if modo == 0:
+            return self.programa[self.programa[puntero]]
+        else:
+            return self.programa[puntero]
 
 # %%
 path = "d:\\advent-of-code-2019\\day5\\"
@@ -127,6 +175,8 @@ with open(path+"input.txt") as input:
     programa = [int(i) for i in input.read().split(',')]
 
 intcode = IntCode(programa)
-intcode.ejecutar_programa(input=1)
+intcode.ejecutar_programa(input=5)
 print(intcode.salidas)
 print(intcode.codigo_diagnostico)
+
+# %%
