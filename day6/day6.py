@@ -66,6 +66,7 @@ class Mapa(object):
     def __init__(self, orbitas):
         self.orbitas = [tuple(orb.split(')')) for orb in orbitas]
         self.contador_orbitas = []
+        self.rutas_orbitas = []
         
     def extraer_objetos(self):
         self.objetos_ = set()
@@ -78,13 +79,20 @@ class Mapa(object):
             if cont_orb[0] == objeto:
                 return cont_orb[1]
         return None
+
+    def buscar_ruta_orbita_cache(self, objeto):
+        for ruta in self.rutas_orbitas:
+            if ruta[0] == objeto:                
+                return ruta[1]
+            elif objeto in ruta[1]:
+                return ruta[1][ruta[1].index(objeto)+1:]
+        return None
     
     def buscar_orbita_directa(self, objeto):        
         for orb in self.orbitas:
             if orb[1] == objeto:
                 return orb[0]
         return None                
-
 
     def cuenta_orbitas(self, objeto, objeto_inicial=None, contador_actual=0):
         if not objeto_inicial:
@@ -108,16 +116,45 @@ class Mapa(object):
         for obj in self.objetos_:
             total_orbitas += self.cuenta_orbitas(obj)
         return total_orbitas
-                
+    
+    def obtener_ruta_orbita(self, objeto, objeto_inicial=None, p_ruta=[]):
+        if not objeto_inicial:
+            objeto_inicial = objeto
+        
+        ruta_cache = self.buscar_ruta_orbita_cache(objeto)
+        if ruta_cache:
+            ruta = p_ruta + ruta_cache                      
+            if not (objeto_inicial, ruta) in self.rutas_orbitas:
+                self.rutas_orbitas.append((objeto_inicial, ruta))
+            return ruta
+        
+        orb_directa = self.buscar_orbita_directa(objeto)
+        if not orb_directa:
+            self.rutas_orbitas.append((objeto_inicial, p_ruta))
+            return p_ruta
+        else:            
+            ruta = p_ruta.copy()
+            ruta.append(orb_directa)
+            return self.obtener_ruta_orbita(orb_directa, objeto_inicial, ruta)
+    
+    def numero_transferencias(self, objeto1='YOU', objeto2='SAN'):
+        orb1 = set(self.obtener_ruta_orbita(objeto1))
+        orb2 = set(self.obtener_ruta_orbita(objeto2))
+        interseccion = orb1.intersection(orb2)
+        return (len(orb1-interseccion) + len(orb2-interseccion))
 
 # %%
 path = "d:\\advent-of-code-2019\\day6\\"
 with open(path+"input.txt") as input:
     datos_mapa = [orb.strip() for orb in input]
 
-# %%
 mapa = Mapa(datos_mapa)
 mapa.extraer_objetos()
 print(mapa.cuenta_orbitas_total())
+# %%
+mapa_prueba = Mapa(['COM)B','B)C','C)D','D)E','E)F','B)G','G)H','D)I','E)J','J)K','K)L','K)YOU','I)SAN'])
+print(mapa_prueba.numero_transferencias())
+# %%
+print(mapa.numero_transferencias())
 
 # %%
